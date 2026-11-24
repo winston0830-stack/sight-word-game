@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sight Words 小小發音闖關考題</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Noto+Sans+TC:wght@500;700;900&display=swap');
+
+    :root {
+      --bg-top: #FFF9EC;
+      --bg-bottom: #EBF5FF;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', 'Inter', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+      min-height: 100vh;
+      color: #1E293B;
+      overflow-x: hidden;
+    }
+
+    .word-font {
+      font-family: 'Fredoka', 'Comic Sans MS', 'Trebuchet MS', rounded, sans-serif;
+      letter-spacing: 0.03em;
+    }
+
+    /* Tactile 3D kid-friendly button */
+    .btn-3d {
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .btn-3d:active:not(:disabled) {
+      transform: translateY(4px);
+    }
+
+    .btn-mic {
+      box-shadow: 0 7px 0 #1D4ED8;
+    }
+    .btn-mic:active:not(:disabled) {
+      box-shadow: 0 2px 0 #1D4ED8;
+    }
+    .btn-mic.listening {
+      box-shadow: 0 7px 0 #B91C1C;
+      animation: pulse-ring 1s infinite;
+    }
+    .btn-mic.listening:active:not(:disabled) {
+      box-shadow: 0 2px 0 #B91C1C;
+    }
+
+    .btn-green {
+      box-shadow: 0 5px 0 #15803D;
+    }
+    .btn-green:active:not(:disabled) {
+      box-shadow: 0 1px 0 #15803D;
+    }
+
+    .btn-amber {
+      box-shadow: 0 5px 0 #B45309;
+    }
+    .btn-amber:active:not(:disabled) {
+      box-shadow: 0 1px 0 #B45309;
+    }
+
+    .btn-purple {
+      box-shadow: 0 5px 0 #6D28D9;
+    }
+    .btn-purple:active:not(:disabled) {
+      box-shadow: 0 1px 0 #6D28D9;
+    }
+
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55), 0 7px 0 #B91C1C; }
+      70% { box-shadow: 0 0 0 18px rgba(239, 68, 68, 0), 0 7px 0 #B91C1C; }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0), 0 7px 0 #B91C1C; }
+    }
+
+    @keyframes pop-in {
+      0% { transform: scale(0.75); opacity: 0; }
+      65% { transform: scale(1.06); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes bounce-happy {
+      0%, 100% { transform: translateY(0) scale(1); }
+      35% { transform: translateY(-16px) scale(1.08); }
+      65% { transform: translateY(-4px) scale(0.97); }
+    }
+    .animate-happy {
+      animation: bounce-happy 0.65s ease-in-out 2;
+    }
+
+    @keyframes speak-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+    .animate-speak {
+      animation: speak-pulse 0.55s ease-in-out;
+    }
+
+    @keyframes float-slow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+    .animate-float {
+      animation: float-slow 3s ease-in-out infinite;
+    }
+
+    @keyframes rainbow-glow {
+      0%, 100% { filter: drop-shadow(0 0 10px rgba(250, 204, 21, 0.7)); transform: scale(1) rotate(-2deg); }
+      50% { filter: drop-shadow(0 0 22px rgba(249, 115, 22, 0.9)); transform: scale(1.06) rotate(2deg); }
+    }
+    .animate-trophy {
+      animation: rainbow-glow 1.8s ease-in-out infinite;
+    }
+
+    .card-shadow {
+      box-shadow: 0 14px 30px -10px rgba(30, 58, 138, 0.12), 0 4px 10px -2px rgba(30, 58, 138, 0.06);
+    }
+
+    /* Smooth countdown bar */
+    #timerBar {
+      transition: width 0.08s linear;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-between p-3 sm:p-5 selection:bg-amber-200">
+
+  <!-- Top Navigation Bar -->
+  <header class="w-full max-w-2xl flex items-center justify-between gap-2 mb-3">
+    <div class="flex items-center gap-2.5">
+      <div class="w-10 h-10 rounded-2xl bg-amber-400 flex items-center justify-center shadow-sm border-2 border-amber-500 text-xl select-none">
+        🦉
+      </div>
+      <div>
+        <h1 class="text-base sm:text-lg font-black text-slate-800 leading-tight">Sight Words 發音小達人</h1>
+        <p class="text-xs text-slate-500 font-medium">共 90 個常見字 · 寬容語音判定</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-1.5 sm:gap-2">
+      <button id="btnSoundToggle" type="button" title="音效開關"
+        class="px-2.5 py-2 rounded-xl bg-white border-2 border-slate-200 hover:border-amber-400 text-slate-700 text-xs sm:text-sm font-bold flex items-center gap-1 shadow-sm transition">
+        <span id="soundIcon">🔊</span>
+        <span class="hidden sm:inline">音效</span>
+      </button>
+      <button id="btnMistakes" type="button"
+        class="px-2.5 sm:px-3 py-2 rounded-xl bg-rose-50 border-2 border-rose-200 hover:border-rose-400 text-rose-700 text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm transition">
+        <span>📝</span>
+        <span>錯題本</span>
+        <span id="mistakeBadge" class="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-xs leading-none">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mode Selector Bar -->
+  <div class="w-full max-w-2xl mb-3 flex flex-wrap items-center justify-center gap-1.5" role="tablist" aria-label="題庫範圍">
+    <button data-mode="all" class="mode-btn px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold border-2 transition bg-sky-500 text-white border-sky-600 shadow-sm">
+      全部 (90字)
+    </button>
+    <button data-mode="list1" class="mode-btn px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold border-2 transition bg-white text-slate-600 border-slate-200 hover:border-sky-300">
+      Checklist-1 (49)
+    </button>
+    <button data-mode="list2" class="mode-btn px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold border-2 transition bg-white text-slate-600 border-slate-200 hover:border-sky-300">
+      Checklist-2 (42)
+    </button>
+    <button data-mode="numcolor" class="mode-btn px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold border-2 transition bg-white text-slate-600 border-slate-200 hover:border-sky-300">
+      數字與顏色 (19)
+    </button>
+    <button data-mode="weak" id="btnWeakMode" class="mode-btn px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold border-2 transition bg-white text-rose-600 border-rose-200 hover:border-rose-400">
+      🔥 錯題特訓
+    </button>
+  </div>
+
+  <!-- Main Stage -->
+  <main class="w-full max-w-2xl flex-1 flex flex-col justify-center">
+
+    <!-- QUIZ VIEW -->
+    <section id="quizView" class="bg-white rounded-3xl border-4 border-sky-100 card-shadow p-4 sm:p-7 flex flex-col items-center relative overflow-hidden">
+
+      <!-- Round Progress Header -->
+      <div class="w-full flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 rounded-full bg-sky-100 text-sky-800 font-extrabold text-xs sm:text-sm">
+            第 <span id="qIndexText">1</span> / 10 題
+          </span>
+          <span id="boostTag" class="hidden px-2.5 py-1 rounded-full bg-rose-100 text-rose-700 font-bold text-xs">
+            🔥 重點加強題
+          </span>
+        </div>
+        <div class="text-xs sm:text-sm font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+          答對：<span id="scoreText">0</span> 題
+        </div>
+      </div>
+
+      <!-- 10-Dot Progress Strip -->
+      <div id="progressDots" class="w-full grid grid-cols-10 gap-1.5 mb-5"></div>
+
+      <!-- Mascot & Status Banner -->
+      <div class="flex items-center gap-3 mb-2">
+        <div id="mascotBox" class="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center select-none animate-float">
+          <!-- Cute Owl SVG -->
+          <svg id="mascotSvg" viewBox="0 0 100 100" class="w-full h-full">
+            <circle cx="50" cy="54" r="38" fill="#FBBF24" stroke="#D97706" stroke-width="4"/>
+            <ellipse cx="50" cy="64" rx="24" ry="22" fill="#FEF3C7"/>
+            <!-- Ears -->
+            <polygon points="22,30 34,20 38,34" fill="#F59E0B" stroke="#D97706" stroke-width="3" stroke-linejoin="round"/>
+            <polygon points="78,30 66,20 62,34" fill="#F59E0B" stroke="#D97706" stroke-width="3" stroke-linejoin="round"/>
+            <!-- Eyes -->
+            <circle cx="37" cy="46" r="11" fill="#FFFFFF" stroke="#92400E" stroke-width="2.5"/>
+            <circle cx="63" cy="46" r="11" fill="#FFFFFF" stroke="#92400E" stroke-width="2.5"/>
+            <circle id="eyeLeft" cx="38" cy="46" r="5" fill="#1E293B"/>
+            <circle id="eyeRight" cx="62" cy="46" r="5" fill="#1E293B"/>
+            <circle cx="40" cy="44" r="1.8" fill="#FFFFFF"/>
+            <circle cx="64" cy="44" r="1.8" fill="#FFFFFF"/>
+            <!-- Beak -->
+            <polygon points="45,54 55,54 50,62" fill="#EA580C"/>
+            <!-- Cheeks -->
+            <circle cx="24" cy="56" r="4.5" fill="#FB7185" opacity="0.55"/>
+            <circle cx="76" cy="56" r="4.5" fill="#FB7185" opacity="0.55"/>
+          </svg>
+        </div>
+        <div id="statusBubble" class="bg-sky-50 border-2 border-sky-200 rounded-2xl px-4 py-2 text-sm sm:text-base font-bold text-sky-900 max-w-xs sm:max-w-sm">
+          按下麥克風，把單字大聲唸出來喔！
+        </div>
+      </div>
+
+      <!-- Giant Sight Word Card -->
+      <div id="wordCard" class="w-full max-w-md my-3 py-8 sm:py-10 px-6 rounded-3xl bg-gradient-to-b from-amber-50 to-orange-50 border-4 border-amber-200 flex flex-col items-center justify-center relative transition-all duration-300">
+        <span id="wordCategoryBadge" class="absolute top-3 left-3 text-xs font-bold px-2.5 py-0.5 rounded-full bg-white/80 text-amber-800 border border-amber-200">
+          Checklist-1
+        </span>
+        <button id="btnHintSpeak" type="button" title="偷聽發音提示"
+          class="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-white/90 hover:bg-white border border-amber-300 text-amber-800 text-xs font-bold flex items-center gap-1 shadow-sm transition">
+          <span>🔈</span>
+          <span>聽示範</span>
+        </button>
+
+        <div id="currentWord" class="word-font text-6xl sm:text-7xl font-bold text-slate-800 select-none tracking-wide my-2">
+          the
+        </div>
+
+        <!-- 3-Second Listening Timer Bar -->
+        <div id="timerWrap" class="w-full max-w-xs mt-3 hidden">
+          <div class="flex justify-between text-xs font-bold text-rose-600 mb-1">
+            <span>🎤 正在聽你唸...</span>
+            <span id="timerSecText">3.0 秒</span>
+          </div>
+          <div class="w-full h-3 bg-rose-100 rounded-full overflow-hidden border border-rose-200">
+            <div id="timerBar" class="h-full bg-gradient-to-r from-rose-500 to-amber-500 rounded-full" style="width: 100%"></div>
+          </div>
+          <p id="heardPreview" class="text-center text-xs text-slate-500 font-medium mt-1.5 min-h-[1rem]"></p>
+        </div>
+
+        <!-- 3x Repeat-Along Indicator (Shown on Wrong Answer) -->
+        <div id="repeatBox" class="w-full max-w-xs mt-3 hidden">
+          <p class="text-center text-xs sm:text-sm font-bold text-amber-800 mb-2">跟著老師唸三次喔！</p>
+          <div class="grid grid-cols-3 gap-2">
+            <div id="rep1" class="rep-pill py-1.5 px-2 rounded-xl bg-white border-2 border-slate-200 text-center text-xs font-bold text-slate-400 transition-all">
+              第 1 次 🔊
+            </div>
+            <div id="rep2" class="rep-pill py-1.5 px-2 rounded-xl bg-white border-2 border-slate-200 text-center text-xs font-bold text-slate-400 transition-all">
+              第 2 次 🔊
+            </div>
+            <div id="rep3" class="rep-pill py-1.5 px-2 rounded-xl bg-white border-2 border-slate-200 text-center text-xs font-bold text-slate-400 transition-all">
+              第 3 次 🔊
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feedback Banner (Correct / Wrong) -->
+      <div id="feedbackBanner" class="hidden w-full max-w-md rounded-2xl px-4 py-2.5 mb-3 text-center font-bold text-sm sm:text-base animate-pop"></div>
+
+      <!-- Primary Controls -->
+      <div id="actionArea" class="w-full max-w-md flex flex-col items-center gap-3 mt-1">
+        <!-- Mic Button -->
+        <button id="btnMic" type="button"
+          class="btn-3d btn-mic w-full py-4 px-6 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-lg sm:text-xl flex items-center justify-center gap-3 cursor-pointer">
+          <span id="micIcon" class="text-2xl">🎤</span>
+          <span id="micBtnText">點我開始唸（3 秒判定）</span>
+        </button>
+
+        <!-- Post-Answer Next / Replay Buttons (hidden while answering) -->
+        <div id="postAnswerControls" class="hidden w-full flex gap-2.5">
+          <button id="btnReplay3x" type="button"
+            class="btn-3d btn-amber flex-1 py-3 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-amber-950 font-black text-sm sm:text-base flex items-center justify-center gap-1.5">
+            <span>🔁</span>
+            <span>再跟讀 3 次</span>
+          </button>
+          <button id="btnNext" type="button"
+            class="btn-3d btn-green flex-1 py-3 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-base sm:text-lg flex items-center justify-center gap-1.5">
+            <span id="btnNextText">下一題</span>
+            <span>➡️</span>
+          </button>
+        </div>
+
+        <!-- Speech Fallback Notice (Only if browser lacks SpeechRecognition or mic denied) -->
+        <div id="micNotice" class="hidden w-full rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900 text-center font-medium">
+        </div>
+
+        <!-- Parent / Manual Judge Helper (Always accessible in case mic is noisy or unavailable) -->
+        <div id="manualJudgeBar" class="w-full pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+          <span class="text-xs text-slate-400 font-bold">家長輔助判定：</span>
+          <div class="flex gap-2">
+            <button id="btnManualCorrect" type="button"
+              class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-xs font-bold transition">
+              ✅ 唸對了
+            </button>
+            <button id="btnManualWrong" type="button"
+              class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold transition">
+              ❌ 唸錯 (跟讀3次)
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROUND SUMMARY VIEW (Every 10 Questions) -->
+    <section id="summaryView" class="hidden bg-white rounded-3xl border-4 border-amber-200 card-shadow p-6 sm:p-8 flex flex-col items-center text-center animate-pop">
+      <div id="summaryHeroIcon" class="text-7xl sm:text-8xl mb-3 select-none">🏆</div>
+
+      <h2 id="summaryTitle" class="text-3xl sm:text-4xl font-black mb-2">太棒了！</h2>
+      <p id="summarySubtitle" class="text-slate-600 font-bold text-sm sm:text-base mb-5">
+        你完成了 10 題發音挑戰！
+      </p>
+
+      <!-- Score Pill -->
+      <div id="summaryScoreCard" class="w-full max-w-sm rounded-2xl p-4 mb-5 border-2 flex items-center justify-around">
+        <div>
+          <div class="text-xs font-bold text-slate-500">本輪得分</div>
+          <div class="text-3xl font-black text-slate-800"><span id="finalScoreNum">0</span> / 10</div>
+        </div>
+        <div class="h-10 w-0.5 bg-slate-200"></div>
+        <div>
+          <div class="text-xs font-bold text-slate-500">達標門檻</div>
+          <div class="text-lg font-extrabold text-amber-600">7 題以上過關</div>
+        </div>
+      </div>
+
+      <!-- Round Missed Words Review -->
+      <div id="roundMissedWrap" class="hidden w-full max-w-md bg-rose-50 border-2 border-rose-100 rounded-2xl p-4 mb-5 text-left">
+        <div class="text-xs sm:text-sm font-black text-rose-700 mb-2 flex items-center justify-between">
+          <span>📝 本輪唸錯的單字（已存入錯題本，之後會更常出現）</span>
+        </div>
+        <div id="roundMissedList" class="flex flex-wrap gap-2"></div>
+      </div>
+
+      <!-- Summary Actions -->
+      <div class="w-full max-w-md flex flex-col sm:flex-row gap-3">
+        <button id="btnNextRound" type="button"
+          class="btn-3d btn-purple flex-1 py-3.5 px-6 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black text-base sm:text-lg flex items-center justify-center gap-2">
+          <span>🚀</span>
+          <span>再挑戰 10 題</span>
+        </button>
+        <button id="btnReviewMistakesFromSummary" type="button"
+          class="py-3.5 px-5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm sm:text-base transition">
+          查看錯題本
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer Stats -->
+  <footer class="w-full max-w-2xl mt-3 text-center text-xs text-slate-400 font-medium">
+    已累積練習 <span id="totalPracticedText" class="font-bold text-slate-600">0</span> 題 · 唸錯的單字會自動提高出題頻率
+  </footer>
+
+  <!-- Mistakes Book Modal -->
+  <div id="mistakesModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-3xl border-4 border-rose-100 shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-pop">
+      <div class="px-5 py-4 bg-rose-50 border-b border-rose-100 flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-black text-rose-800">📝 錯題本與加權頻率</h3>
+          <p class="text-xs text-rose-600 font-medium">唸錯越多次，之後出題的機率越高（點擊單字可聽發音）</p>
+        </div>
+        <button id="btnCloseModal" type="button" class="w-9 h-9 rounded-full bg-white hover:bg-rose-100 text-rose-700 font-black text-lg flex items-center justify-center border border-rose-200">
+          ✕
+        </button>
+      </div>
+
+      <div id="mistakesListContainer" class="p-4 overflow-y-auto flex-1 space-y-2">
+        <!-- Populated dynamically -->
+      </div>
+
+      <div class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
+        <button id="btnClearAllMistakes" type="button"
+          class="px-3.5 py-2 rounded-xl bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-300 text-slate-600 hover:text-rose-700 text-xs font-bold transition">
+          🗑️ 清空全部錯題
+        </button>
+        <button id="btnPracticeWeakNow" type="button"
+          class="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs sm:text-sm font-black shadow-sm transition">
+          🔥 立刻特訓錯題
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl bg-slate-800 text-white text-sm font-bold shadow-lg"></div>
+
+  <script>
+    // =========================================================================
+    // 1. COMPLETE WORD BANK FROM UPLOADED IMAGES
+    // =========================================================================
+    const CHECKLIST_1 = [
+      'the', 'at', 'in', 'do', 'are',
+      'it', 'all', 'me', 'and', 'you',
+      'see', 'us', 'am', 'we', 'get',
+      'have', 'that', 'good', 'give', 'they',
+      'like', 'this', 'your', 'my', 'on',
+      'too', 'come', 'from', 'for', 'will',
+      'to', 'there', 'here', 'with', 'run',
+      'his', 'her', 'look', 'so', 'got',
+      'who', 'what', 'when', 'where', 'why',
+      'not', 'want', 'love', 'go'
+    ];
+
+    const CHECKLIST_2_MAIN = [
+      'day', 'say', 'him', 'eat', 'out',
+      'new', 'has', 'little', 'ate', 'of',
+      'off', 'was', 'be', 'again', 'as',
+      'went', 'but', 'first', 'funny', 'away',
+      'up', 'then', 'from'
+    ];
+
+    const NUMBERS_WORDS = [
+      'one', 'two', 'three', 'four', 'five',
+      'six', 'seven', 'eight', 'nine', 'ten'
+    ];
+
+    const COLORS_WORDS = [
+      'red', 'purple', 'green', 'brown', 'yellow',
+      'blue', 'white', 'black', 'pink'
+    ];
+
+    const CHECKLIST_2 = [...CHECKLIST_2_MAIN, ...NUMBERS_WORDS, ...COLORS_WORDS];
+
+    // Deduplicated master list (90 unique words; "from" appears in both lists)
+    const ALL_WORDS = Array.from(new Set([...CHECKLIST_1, ...CHECKLIST_2]));
+
+    function getWordCategory(word) {
+      if (NUMBERS_WORDS.includes(word)) return 'Checklist-2 · 數字';
+      if (COLORS_WORDS.includes(word)) return 'Checklist-2 · 顏色';
+      const in1 = CHECKLIST_1.includes(word);
+      const in2 = CHECKLIST_2_MAIN.includes(word);
+      if (in1 && in2) return 'Checklist-1 & 2';
+      if (in1) return 'Checklist-1';
+      return 'Checklist-2';
+    }
+
+    // =========================================================================
+    // 2. KID-FRIENDLY FORGIVING PRONUNCIATION MAP
+    // =========================================================================
+    const FORGIVING_ALIASES = {
+      the: ['the', 'da', 'de', 'duh', 'thuh', 'thee', 'ze', 'there'],
+      at: ['at', 'et', 'add', 'hat', 'act', 'ed'],
+      in: ['in', 'inn', 'en', 'n', 'and'],
+      do: ['do', 'due', 'dew', 'doo', 'du', 'too', 'to', 'two'],
+      are: ['are', 'r', 'our', 'hour', 'ar', 'ah', 'all'],
+      it: ['it', 'et', 'id', 'eat', 'is'],
+      all: ['all', 'awl', 'ol', 'or', 'hall', 'al', 'oh'],
+      me: ['me', 'mi', 'knee', 'be', 'my'],
+      and: ['and', 'end', 'an', 'ant', 'n', 'in'],
+      you: ['you', 'u', 'ewe', 'yew', 'yu', 'your'],
+      see: ['see', 'sea', 'c', 'si', 'she', 'say'],
+      us: ['us', 'as', 'oz', 'ass', 'up'],
+      am: ['am', 'm', 'em', 'ham', 'um', 'im', "i'm", 'an'],
+      we: ['we', 'wee', 'wii', 'whee', 'v', 'me'],
+      get: ['get', 'git', 'jet', 'got', 'gate', 'cat'],
+      have: ['have', 'half', 'hav', 'hef', 'has', 'had'],
+      that: ['that', 'dat', 'zat', 'dad', 'vat', 'dead'],
+      good: ['good', 'gud', 'could', 'wood', 'hood', 'gold'],
+      give: ['give', 'gif', 'giv', 'live', 'gift'],
+      they: ['they', 'day', 'dey', 'zay', 'the', 'lay'],
+      like: ['like', 'light', 'lyke', 'lack', 'bike', 'life'],
+      this: ['this', 'dis', 'zis', 'these', 'is', 'dish'],
+      your: ['your', "you're", 'youre', 'yore', 'ure', 'or', 'you'],
+      my: ['my', 'mai', 'mi', 'might', 'by', 'mine'],
+      on: ['on', 'an', 'own', 'un', 'hon', 'one'],
+      too: ['too', 'to', 'two', '2', 'tu', 'do'],
+      come: ['come', 'cum', 'calm', 'gum', 'some', 'cam'],
+      from: ['from', 'frum', 'form', 'rom', 'fom', 'front'],
+      for: ['for', 'four', '4', 'fore', 'far', 'fur', 'fall'],
+      will: ['will', 'well', 'wheel', "we'll", 'weell', 'bill', 'real'],
+      to: ['to', 'too', 'two', '2', 'tu', 'do'],
+      there: ['there', 'their', "they're", 'theyre', 'dare', 'der', 'where'],
+      here: ['here', 'hear', 'ear', 'her', 'hair', 'hill'],
+      with: ['with', 'wit', 'wif', 'wiz', 'whiff', 'width', 'will'],
+      run: ['run', 'ran', 'ron', 'one', 'won', 'wrong'],
+      his: ['his', 'is', 'hiss', "he's", 'hes', 'has'],
+      her: ['her', 'fur', 'er', 'hear', 'here', 'hur', 'hurt'],
+      look: ['look', 'luk', 'book', 'luck', 'took', 'luke'],
+      so: ['so', 'sew', 'sow', 'tho', 'saw', 'soul'],
+      got: ['got', 'god', 'gut', 'hot', 'not', 'get'],
+      who: ['who', 'hoo', 'hu', 'whoo', 'you', 'how'],
+      what: ['what', 'wat', 'watt', 'wut', 'hot', 'want'],
+      when: ['when', 'wen', 'win', 'one', 'van', 'went'],
+      where: ['where', 'wear', 'ware', "we're", 'were', 'there', 'well'],
+      why: ['why', 'y', 'wai', 'wide', 'white', 'wine'],
+      not: ['not', 'knot', 'nat', 'nut', 'hot', 'got', 'no'],
+      want: ['want', "won't", 'wont', 'wand', 'one', 'what'],
+      love: ['love', 'luv', 'laugh', 'loaf', 'dove', 'live'],
+      go: ['go', 'goal', 'gold', 'glow', 'no', 'so'],
+      day: ['day', 'they', 'dey', 'date', 'bay', 'say'],
+      say: ['say', 'see', 'stay', 'hey', 'they', 'day'],
+      him: ['him', 'hymn', 'hem', 'ham', 'in', 'his'],
+      eat: ['eat', 'it', 'heat', 'ate', 'feet', 'each'],
+      out: ['out', 'owt', 'about', 'ouch', 'art', 'our'],
+      new: ['new', 'knew', 'gnu', 'nu', 'you', 'no', 'news'],
+      has: ['has', 'as', 'his', 'had', 'hat', 'have'],
+      little: ['little', 'lidl', 'liddle', 'riddle', 'letter', 'needle'],
+      ate: ['ate', 'eight', '8', 'aid', 'it', 'eat', 'hey'],
+      of: ['of', 'off', 'uv', 'ov', 'up', 'have'],
+      off: ['off', 'of', 'awf', 'arf', 'up', 'on'],
+      was: ['was', 'wuz', 'woz', 'buzz', 'what', 'words'],
+      be: ['be', 'bee', 'b', 'bi', 'me', 'pea'],
+      again: ['again', 'a gain', 'agen', 'begin', 'against', 'gain'],
+      as: ['as', 'has', 'az', 'us', 'is', 'at'],
+      went: ['went', 'vent', 'want', 'when', 'wet', 'wind'],
+      but: ['but', 'butt', 'bat', 'bet', 'bud', 'bus'],
+      first: ['first', '1st', 'furst', 'fast', 'burst', 'worst', 'forest'],
+      funny: ['funny', 'fanny', 'honey', 'money', 'sunny', 'bunny'],
+      away: ['away', 'a way', 'way', 'awake', 'weigh'],
+      up: ['up', 'app', 'op', 'cup', 'ub', 'of'],
+      then: ['then', 'than', 'den', 'ten', 'the', 'them'],
+      one: ['one', '1', 'won', 'wan', 'run', 'on'],
+      two: ['two', '2', 'to', 'too', 'tu', 'do'],
+      three: ['three', '3', 'tree', 'free', 'sri', 'thee', 'sleep'],
+      four: ['four', '4', 'for', 'fore', 'floor', 'fall', 'far'],
+      five: ['five', '5', 'fife', 'fine', 'hive', 'fly'],
+      six: ['six', '6', 'sex', 'sicks', 'sick', 'fix', 'sticks'],
+      seven: ['seven', '7', 'heaven', 'savin', 'sevin', 'eleven'],
+      eight: ['eight', '8', 'ate', 'aid', 'hey', 'it', 'egg'],
+      nine: ['nine', '9', 'line', 'night', 'nice', 'mine', 'my'],
+      ten: ['ten', '10', 'tan', 'tin', 'then', 'pen', 'den'],
+      red: ['red', 'read', 'rad', 'bed', 'led', 'rat', 'wet'],
+      purple: ['purple', 'people', 'purpl', 'bubble', 'pop', 'apple'],
+      green: ['green', 'grin', 'clean', 'queen', 'greene', 'cream'],
+      brown: ['brown', 'braun', 'crown', 'down', 'ground', 'round', 'brow'],
+      yellow: ['yellow', 'yello', 'hello', 'jello', 'fellow', 'yell'],
+      blue: ['blue', 'blew', 'boo', 'flu', 'glue', 'true', 'bruce'],
+      white: ['white', 'wide', 'why', 'right', 'light', 'wait', 'wife'],
+      black: ['black', 'back', 'block', 'lack', 'blank', 'break'],
+      pink: ['pink', 'pig', 'think', 'blink', 'link', 'ink', 'pick']
+    };
+
+    function levenshtein(a, b) {
+      const m = a.length, n = b.length;
+      const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+      for (let i = 0; i <= m; i++) dp[i][0] = i;
+      for (let j = 0; j <= n; j++) dp[0][j] = j;
+      for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+          const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+          dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+        }
+      }
+      return dp[m][n];
+    }
+
+    function isForgivingMatch(targetWord, transcripts) {
+      const target = targetWord.toLowerCase();
+      const aliases = FORGIVING_ALIASES[target] || [target];
+
+      for (const raw of transcripts) {
+        if (!raw) continue;
+        const cleaned = raw.toLowerCase().replace(/[^a-z0-9'\s]/g, ' ').trim();
+        if (!cleaned) continue;
+
+        // Direct full match or alias match
+        if (aliases.includes(cleaned)) return true;
+
+        // Split into tokens (kids often say "um, yellow" or "it's blue")
+        const tokens = cleaned.split(/\s+/);
+        for (const tok of tokens) {
+          if (!tok) continue;
+          if (aliases.includes(tok)) return true;
+
+          // Forgiving edit distance for kids' pronunciation
+          const maxDist = target.length >= 5 ? 2 : (target.length >= 3 ? 1 : 0);
+          if (maxDist > 0 && levenshtein(target, tok) <= maxDist) {
+            return true;
+          }
+          // Check prefix/substring for longer words (e.g. "purp" -> purple)
+          if (target.length >= 4 && tok.length >= 3 && (target.startsWith(tok) || tok.startsWith(target))) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    // =========================================================================
+    // 3. PERSISTENT STORAGE (Mistakes & Stats)
+    // =========================================================================
+    const STORAGE_KEY = 'sight_words_quiz_v1';
+
+    function loadStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return {
+            mistakes: parsed.mistakes && typeof parsed.mistakes === 'object' ? parsed.mistakes : {},
+            totalPracticed: Number(parsed.totalPracticed) || 0
+          };
+        }
+      } catch (e) {
+        // Sandboxed storage fallback
+      }
+      return { mistakes: {}, totalPracticed: 0 };
+    }
+
+    function saveStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          mistakes: state.mistakes,
+          totalPracticed: state.totalPracticed
+        }));
+      } catch (e) {
+        // Ignore if storage blocked
+      }
+    }
+
+    // =========================================================================
+    // 4. WEB AUDIO SOUND EFFECTS (Zero external audio files)
+    // =========================================================================
+    let audioCtx = null;
+    function getAudioCtx() {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) audioCtx = new AC();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
+      return audioCtx;
+    }
+
+    function playTone(freq, startOffset, duration, type = 'sine', gainVal = 0.22) {
+      if (!state.soundEnabled) return;
+      const ctx = getAudioCtx();
+      if (!ctx) return;
+      const now = ctx.currentTime + startOffset;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(gainVal, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + duration + 0.02);
+    }
+
+    function playCorrectSound() {
+      // Cheerful rising sparkle chime (C5 -> E5 -> G5 -> C6)
+      playTone(523.25, 0.00, 0.16, 'triangle', 0.25);
+      playTone(659.25, 0.09, 0.16, 'triangle', 0.25);
+      playTone(783.99, 0.18, 0.18, 'triangle', 0.25);
+      playTone(1046.50, 0.27, 0.38, 'sine', 0.28);
+    }
+
+    function playWrongSound() {
+      // Soft, friendly descending two-note boop (never harsh)
+      playTone(349.23, 0.00, 0.20, 'sine', 0.18);
+      playTone(293.66, 0.16, 0.28, 'sine', 0.18);
+    }
+
+    function playVictoryFanfare() {
+      // Big celebration melody for >= 7/10
+      const notes = [
+        [523.25, 0.00, 0.15],
+        [659.25, 0.14, 0.15],
+        [783.99, 0.28, 0.15],
+        [1046.50, 0.42, 0.25],
+        [783.99, 0.65, 0.14],
+        [1046.50, 0.79, 0.55]
+      ];
+      notes.forEach(([f, t, d]) => playTone(f, t, d, 'triangle', 0.25));
+    }
+
+    function playEncourageMelody() {
+      // Warm gentle melody for < 7/10
+      playTone(392.00, 0.00, 0.20, 'sine', 0.2);
+      playTone(440.00, 0.20, 0.20, 'sine', 0.2);
+      playTone(523.25, 0.40, 0.42, 'sine', 0.22);
+    }
+
+    // =========================================================================
+    // 5. SPEECH SYNTHESIS + REAL AUDIO FALLBACK (Pronounce word 1x or 3x)
+    // =========================================================================
+    let preferredVoice = null;
+    let speechUnlocked = false;
+    const activeUtterances = []; // Prevent Chrome/Safari GC from cutting off speech
+    let fallbackAudioEl = null;
+
+    function pickEnglishVoice() {
+      if (!('speechSynthesis' in window)) return null;
+      const voices = window.speechSynthesis.getVoices();
+      if (!voices.length) return null;
+      preferredVoice =
+        voices.find(v => v.lang === 'en-US' && /Google|Samantha|Aria|Jenny|Natural/i.test(v.name)) ||
+        voices.find(v => v.lang === 'en-US') ||
+        voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en')) ||
+        null;
+      return preferredVoice;
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = pickEnglishVoice;
+      pickEnglishVoice();
+    }
+
+    // Unlock audio & speechSynthesis inside a direct user click gesture
+    function unlockSpeechEngine() {
+      getAudioCtx();
+      if (!fallbackAudioEl) {
+        fallbackAudioEl = new Audio();
+        fallbackAudioEl.preload = 'auto';
+      }
+      if (!speechUnlocked && 'speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.resume();
+          const primer = new SpeechSynthesisUtterance('');
+          primer.volume = 0;
+          window.speechSynthesis.speak(primer);
+          speechUnlocked = true;
+        } catch (e) {}
+      }
+    }
+
+    function playFallbackWordAudio(word) {
+      return new Promise(resolve => {
+        const urls = [
+          `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=2`,
+          `https://ssl.gstatic.com/dictionary/static/sounds/20200429/${encodeURIComponent(word.toLowerCase())}--_us_1.mp3`
+        ];
+        let idx = 0;
+        let finished = false;
+        const done = () => {
+          if (!finished) {
+            finished = true;
+            resolve();
+          }
+        };
+
+        const tryNext = () => {
+          if (finished) return;
+          if (idx >= urls.length) {
+            setTimeout(done, 400);
+            return;
+          }
+          const url = urls[idx++];
+          const audio = fallbackAudioEl || new Audio();
+          fallbackAudioEl = audio;
+          audio.onended = done;
+          audio.onerror = tryNext;
+          audio.src = url;
+          audio.currentTime = 0;
+          const p = audio.play();
+          if (p && typeof p.catch === 'function') {
+            p.catch(() => tryNext());
+          }
+        };
+
+        tryNext();
+        setTimeout(done, 2600);
+      });
+    }
+
+    function speakWordOnce(word, rate = 0.85) {
+      return new Promise(resolve => {
+        let settled = false;
+        const done = () => {
+          if (!settled) {
+            settled = true;
+            resolve();
+          }
+        };
+
+        const useFallback = () => {
+          if (settled) return;
+          playFallbackWordAudio(word).then(done);
+        };
+
+        if (!('speechSynthesis' in window)) {
+          useFallback();
+          return;
+        }
+
+        try {
+          const synth = window.speechSynthesis;
+          if (synth.paused) synth.resume();
+
+          const startSpeak = () => {
+            if (settled) return;
+            const utter = new SpeechSynthesisUtterance(word);
+            utter.lang = 'en-US';
+            utter.rate = rate;
+            utter.pitch = 1.02;
+            utter.volume = 1.0;
+            const v = preferredVoice || pickEnglishVoice();
+            if (v) utter.voice = v;
+
+            activeUtterances.push(utter);
+            if (activeUtterances.length > 10) activeUtterances.shift();
+
+            let started = false;
+            const startGuard = setTimeout(() => {
+              // If browser TTS silently failed to start within 450ms, fall back to real US audio
+              if (!started && !settled) {
+                try { synth.cancel(); } catch (e) {}
+                useFallback();
+              }
+            }, 450);
+
+            utter.onstart = () => {
+              started = true;
+              clearTimeout(startGuard);
+            };
+            utter.onend = () => {
+              clearTimeout(startGuard);
+              done();
+            };
+            utter.onerror = () => {
+              clearTimeout(startGuard);
+              if (!started) {
+                useFallback();
+              } else {
+                done();
+              }
+            };
+
+            synth.speak(utter);
+            if (synth.paused) synth.resume();
+            setTimeout(done, 2600);
+          };
+
+          // Avoid Chrome bug where cancel() immediately before speak() drops the utterance
+          if (synth.speaking || synth.pending) {
+            synth.cancel();
+            setTimeout(startSpeak, 70);
+          } else {
+            startSpeak();
+          }
+        } catch (e) {
+          useFallback();
+        }
+      });
+    }
+
+    let repeatRunToken = 0;
+    async function speakWordThreeTimes(word) {
+      const myToken = ++repeatRunToken;
+      const repeatBox = document.getElementById('repeatBox');
+      const pills = [document.getElementById('rep1'), document.getElementById('rep2'), document.getElementById('rep3')];
+      const wordEl = document.getElementById('currentWord');
+
+      repeatBox.classList.remove('hidden');
+      pills.forEach(p => {
+        p.className = 'rep-pill py-1.5 px-2 rounded-xl bg-white border-2 border-slate-200 text-center text-xs font-bold text-slate-400 transition-all';
+      });
+
+      for (let i = 0; i < 3; i++) {
+        if (myToken !== repeatRunToken) return;
+        pills[i].className = 'rep-pill py-1.5 px-2 rounded-xl bg-amber-400 border-2 border-amber-500 text-center text-xs font-black text-amber-950 scale-105 shadow-sm transition-all';
+        wordEl.classList.remove('animate-speak');
+        void wordEl.offsetWidth;
+        wordEl.classList.add('animate-speak');
+
+        await speakWordOnce(word, 0.8);
+        if (myToken !== repeatRunToken) return;
+
+        pills[i].className = 'rep-pill py-1.5 px-2 rounded-xl bg-emerald-100 border-2 border-emerald-300 text-center text-xs font-bold text-emerald-800 transition-all';
+        if (i < 2) {
+          await new Promise(r => setTimeout(r, 750));
+        }
+      }
+    }
+
+    // =========================================================================
+    // 6. QUIZ STATE & WEIGHTED SAMPLING
+    // =========================================================================
+    const saved = loadStorage();
+    const state = {
+      mode: 'all',
+      soundEnabled: true,
+      mistakes: saved.mistakes,
+      totalPracticed: saved.totalPracticed,
+      roundWords: [],
+      roundResults: [], // null | 'correct' | 'wrong'
+      roundMissed: [],
+      qIndex: 0,
+      isListening: false,
+      isAnswered: false
+    };
+
+    function getPoolForMode(mode) {
+      if (mode === 'list1') return CHECKLIST_1;
+      if (mode === 'list2') return CHECKLIST_2;
+      if (mode === 'numcolor') return [...NUMBERS_WORDS, ...COLORS_WORDS];
+      if (mode === 'weak') {
+        const weakWords = Object.keys(state.mistakes).filter(w => state.mistakes[w] > 0 && ALL_WORDS.includes(w));
+        return weakWords.length > 0 ? weakWords : ALL_WORDS;
+      }
+      return ALL_WORDS;
+    }
+
+    // Weighted random selection WITHOUT replacement (if pool >= 10)
+    // Wrong words get weight = 1 + mistakeCount * 3 (much higher frequency!)
+    function generateRound(mode) {
+      const pool = getPoolForMode(mode);
+      const selected = [];
+      const candidates = pool.map(word => ({
+        word,
+        weight: 1 + (state.mistakes[word] || 0) * 3
+      }));
+
+      for (let i = 0; i < 10; i++) {
+        let active = candidates.filter(c => !selected.includes(c.word));
+        if (active.length === 0) {
+          // If weak pool has < 10 words, allow repeats cleanly
+          active = candidates;
+        }
+        const totalWeight = active.reduce((sum, c) => sum + c.weight, 0);
+        let r = Math.random() * totalWeight;
+        let chosen = active[0].word;
+        for (const item of active) {
+          r -= item.weight;
+          if (r <= 0) {
+            chosen = item.word;
+            break;
+          }
+        }
+        selected.push(chosen);
+      }
+      return selected;
+    }
+
+    // =========================================================================
+    // 7. SPEECH RECOGNITION (3-SECOND MAX JUDGING)
+    // =========================================================================
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+    let recognition = null;
+    let listenTimerId = null;
+    let listenIntervalId = null;
+    let listenStartTime = 0;
+    let capturedTranscripts = [];
+    let judgedThisAttempt = false;
+    const MAX_LISTEN_MS = 3000;
+
+    function stopListeningCleanup() {
+      clearTimeout(listenTimerId);
+      clearInterval(listenIntervalId);
+      listenTimerId = null;
+      listenIntervalId = null;
+      state.isListening = false;
+      if (recognition) {
+        try {
+          recognition.onresult = null;
+          recognition.onerror = null;
+          recognition.onend = null;
+          recognition.abort();
+        } catch (e) {}
+        recognition = null;
+      }
+      document.getElementById('timerWrap').classList.add('hidden');
+      const btnMic = document.getElementById('btnMic');
+      btnMic.classList.remove('listening', 'bg-rose-600', 'hover:bg-rose-500');
+      btnMic.classList.add('bg-blue-600', 'hover:bg-blue-500');
+      document.getElementById('micIcon').textContent = '🎤';
+      document.getElementById('micBtnText').textContent = '點我開始唸（3 秒判定）';
+    }
+
+    function startListening() {
+      if (state.isAnswered) return;
+      if (state.isListening) {
+        // Manual early stop -> judge immediately
+        finalizeListening();
+        return;
+      }
+
+      // Unlock speech & audio inside user gesture, and cancel any prior TTS
+      unlockSpeechEngine();
+      repeatRunToken++;
+      if ('speechSynthesis' in window && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+      }
+
+      if (!SpeechRecognitionAPI) {
+        showMicNotice('此瀏覽器不支援語音辨識，請直接使用下方「家長輔助判定」按鈕，或改用 Chrome / Edge 開啟喔！');
+        return;
+      }
+
+      capturedTranscripts = [];
+      judgedThisAttempt = false;
+      state.isListening = true;
+
+      const btnMic = document.getElementById('btnMic');
+      btnMic.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+      btnMic.classList.add('listening', 'bg-rose-600', 'hover:bg-rose-500');
+      document.getElementById('micIcon').textContent = '⏹️';
+      document.getElementById('micBtnText').textContent = '正在聽...（唸完可提前點停止）';
+
+      document.getElementById('timerWrap').classList.remove('hidden');
+      document.getElementById('heardPreview').textContent = '';
+      document.getElementById('timerBar').style.width = '100%';
+      document.getElementById('timerSecText').textContent = '3.0 秒';
+      setStatusBubble('耳朵張開囉！請大聲唸出來～ 👂', 'listening');
+      hideMicNotice();
+
+      try {
+        recognition = new SpeechRecognitionAPI();
+        recognition.lang = 'en-US';
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 5;
+        recognition.continuous = false;
+
+        const targetWord = state.roundWords[state.qIndex];
+
+        recognition.onresult = (event) => {
+          if (judgedThisAttempt) return;
+          const batch = [];
+          for (let i = 0; i < event.results.length; i++) {
+            const res = event.results[i];
+            for (let j = 0; j < res.length; j++) {
+              const t = res[j].transcript.trim();
+              if (t) {
+                batch.push(t);
+                capturedTranscripts.push(t);
+              }
+            }
+          }
+          if (batch.length > 0) {
+            document.getElementById('heardPreview').textContent = `聽到：「${batch[0]}」`;
+          }
+          // Instant early win if forgiving match succeeds!
+          if (isForgivingMatch(targetWord, batch)) {
+            judgedThisAttempt = true;
+            stopListeningCleanup();
+            handleCorrect(batch[0]);
+          }
+        };
+
+        recognition.onerror = (event) => {
+          if (judgedThisAttempt) return;
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            judgedThisAttempt = true;
+            stopListeningCleanup();
+            showMicNotice('麥克風權限未開啟，請允許麥克風權限，或直接使用下方「家長輔助判定」按鈕！');
+            setStatusBubble('麥克風好像沒開喔，可以用下方家長按鈕判定！', 'idle');
+          }
+        };
+
+        recognition.onend = () => {
+          if (!judgedThisAttempt && state.isListening) {
+            finalizeListening();
+          }
+        };
+
+        recognition.start();
+      } catch (e) {
+        stopListeningCleanup();
+        showMicNotice('無法啟動麥克風，請直接使用下方「家長輔助判定」按鈕！');
+        return;
+      }
+
+      // 3-second countdown visual & hard timeout
+      listenStartTime = performance.now();
+      listenIntervalId = setInterval(() => {
+        const elapsed = performance.now() - listenStartTime;
+        const left = Math.max(0, MAX_LISTEN_MS - elapsed);
+        const pct = (left / MAX_LISTEN_MS) * 100;
+        document.getElementById('timerBar').style.width = `${pct}%`;
+        document.getElementById('timerSecText').textContent = `${(left / 1000).toFixed(1)} 秒`;
+      }, 60);
+
+      listenTimerId = setTimeout(() => {
+        if (!judgedThisAttempt) {
+          finalizeListening();
+        }
+      }, MAX_LISTEN_MS);
+    }
+
+    function finalizeListening() {
+      if (judgedThisAttempt) return;
+      judgedThisAttempt = true;
+      const transcripts = [...capturedTranscripts];
+      stopListeningCleanup();
+
+      const targetWord = state.roundWords[state.qIndex];
+      if (isForgivingMatch(targetWord, transcripts)) {
+        handleCorrect(transcripts[0] || targetWord);
+      } else {
+        handleWrong(transcripts[0] || '');
+      }
+    }
+
+    // =========================================================================
+    // 8. ANSWER HANDLERS (Correct / Wrong)
+    // =========================================================================
+    function handleCorrect(heardText = '') {
+      if (state.isAnswered) return;
+      state.isAnswered = true;
+      state.roundResults[state.qIndex] = 'correct';
+      state.totalPracticed++;
+      saveStorage();
+
+      playCorrectSound();
+
+      // Confetti burst
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 55,
+          spread: 70,
+          origin: { y: 0.62 },
+          colors: ['#FBBF24', '#34D399', '#60A5FA', '#F472B6', '#A78BFA']
+        });
+      }
+
+      const wordCard = document.getElementById('wordCard');
+      wordCard.classList.remove('border-amber-200', 'from-amber-50', 'to-orange-50');
+      wordCard.classList.add('border-emerald-400', 'from-emerald-50', 'to-teal-50', 'animate-happy');
+
+      const praises = ['太厲害了！唸得好標準！🌟', '答對了！你超棒的！🎉', '好清楚喔！給你一個大讚！👍', '答對囉！繼續保持！✨'];
+      const msg = praises[Math.floor(Math.random() * praises.length)];
+      setStatusBubble(msg, 'correct');
+
+      const fb = document.getElementById('feedbackBanner');
+      fb.className = 'w-full max-w-md rounded-2xl px-4 py-2.5 mb-3 text-center font-black text-sm sm:text-base bg-emerald-100 text-emerald-800 border-2 border-emerald-300 animate-pop';
+      fb.textContent = heardText ? `✅ 答對了！（辨識結果：${heardText}）` : '✅ 答對了！';
+
+      showPostAnswerControls(false);
+      updateHeaderAndDots();
+    }
+
+    function handleWrong(heardText = '') {
+      if (state.isAnswered) return;
+      state.isAnswered = true;
+      const word = state.roundWords[state.qIndex];
+      state.roundResults[state.qIndex] = 'wrong';
+      if (!state.roundMissed.includes(word)) {
+        state.roundMissed.push(word);
+      }
+
+      // Save wrong word & increase frequency
+      state.mistakes[word] = (state.mistakes[word] || 0) + 1;
+      state.totalPracticed++;
+      saveStorage();
+
+      playWrongSound();
+
+      const wordCard = document.getElementById('wordCard');
+      wordCard.classList.remove('border-amber-200', 'from-amber-50', 'to-orange-50');
+      wordCard.classList.add('border-rose-300', 'from-rose-50', 'to-amber-50');
+
+      setStatusBubble('沒關係！聽老師唸三次，跟著唸喔！💛', 'wrong');
+
+      const fb = document.getElementById('feedbackBanner');
+      fb.className = 'w-full max-w-md rounded-2xl px-4 py-2.5 mb-3 text-center font-bold text-xs sm:text-sm bg-rose-100 text-rose-800 border-2 border-rose-200 animate-pop';
+      const heardPart = heardText ? `（聽到：${heardText}）` : '（沒聽清楚或唸錯囉）';
+      fb.textContent = `💪 一起練習「${word}」${heardPart} · 已存入錯題本加強！`;
+
+      showPostAnswerControls(true);
+      updateHeaderAndDots();
+
+      // Speak the correct word 3 times for the child to repeat along
+      speakWordThreeTimes(word);
+    }
+
+    function showPostAnswerControls(isWrong) {
+      document.getElementById('btnMic').classList.add('hidden');
+      document.getElementById('manualJudgeBar').classList.add('hidden');
+      const post = document.getElementById('postAnswerControls');
+      post.classList.remove('hidden');
+
+      const btnReplay = document.getElementById('btnReplay3x');
+      if (isWrong) {
+        btnReplay.classList.remove('hidden');
+      } else {
+        btnReplay.classList.add('hidden');
+      }
+
+      document.getElementById('btnNextText').textContent = state.qIndex === 9 ? '看 10 題評分結果' : '下一題';
+    }
+
+    // =========================================================================
+    // 9. UI RENDERING & ROUND FLOW
+    // =========================================================================
+    function startNewRound() {
+      stopListeningCleanup();
+      repeatRunToken++;
+      if ('speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+      }
+
+      state.roundWords = generateRound(state.mode);
+      state.roundResults = new Array(10).fill(null);
+      state.roundMissed = [];
+      state.qIndex = 0;
+
+      document.getElementById('summaryView').classList.add('hidden');
+      document.getElementById('quizView').classList.remove('hidden');
+      renderCurrentQuestion();
+    }
+
+    function renderCurrentQuestion() {
+      stopListeningCleanup();
+      repeatRunToken++;
+      state.isAnswered = false;
+
+      const word = state.roundWords[state.qIndex];
+      const mistakeCount = state.mistakes[word] || 0;
+
+      // Reset card look
+      const wordCard = document.getElementById('wordCard');
+      wordCard.className = 'w-full max-w-md my-3 py-8 sm:py-10 px-6 rounded-3xl bg-gradient-to-b from-amber-50 to-orange-50 border-4 border-amber-200 flex flex-col items-center justify-center relative transition-all duration-300';
+
+      document.getElementById('currentWord').textContent = word;
+      document.getElementById('wordCategoryBadge').textContent = getWordCategory(word);
+
+      const boostTag = document.getElementById('boostTag');
+      if (mistakeCount > 0) {
+        boostTag.classList.remove('hidden');
+        boostTag.textContent = `🔥 錯題加強 (錯${mistakeCount}次)`;
+      } else {
+        boostTag.classList.add('hidden');
+      }
+
+      document.getElementById('repeatBox').classList.add('hidden');
+      document.getElementById('feedbackBanner').classList.add('hidden');
+      document.getElementById('postAnswerControls').classList.add('hidden');
+      document.getElementById('btnMic').classList.remove('hidden');
+      document.getElementById('manualJudgeBar').classList.remove('hidden');
+
+      setStatusBubble('準備好了嗎？按下麥克風唸出這個單字！', 'idle');
+      updateHeaderAndDots();
+    }
+
+    function updateHeaderAndDots() {
+      document.getElementById('qIndexText').textContent = state.qIndex + 1;
+      const correctCount = state.roundResults.filter(r => r === 'correct').length;
+      document.getElementById('scoreText').textContent = correctCount;
+
+      const totalMistakeWords = Object.keys(state.mistakes).filter(w => state.mistakes[w] > 0).length;
+      document.getElementById('mistakeBadge').textContent = totalMistakeWords;
+      document.getElementById('totalPracticedText').textContent = state.totalPracticed;
+
+      const dotsWrap = document.getElementById('progressDots');
+      dotsWrap.innerHTML = '';
+      for (let i = 0; i < 10; i++) {
+        const res = state.roundResults[i];
+        const dot = document.createElement('div');
+        let cls = 'h-3 rounded-full transition-all ';
+        if (res === 'correct') {
+          cls += 'bg-emerald-400 shadow-xs';
+        } else if (res === 'wrong') {
+          cls += 'bg-rose-400';
+        } else if (i === state.qIndex) {
+          cls += 'bg-sky-500 ring-2 ring-sky-200 scale-y-125';
+        } else {
+          cls += 'bg-slate-200';
+        }
+        dot.className = cls;
+        dotsWrap.appendChild(dot);
+      }
+    }
+
+    function setStatusBubble(text, mood) {
+      const bubble = document.getElementById('statusBubble');
+      bubble.textContent = text;
+      bubble.className = 'rounded-2xl px-4 py-2 text-sm sm:text-base font-bold max-w-xs sm:max-w-sm border-2 transition-colors ';
+      if (mood === 'correct') {
+        bubble.className += 'bg-emerald-50 border-emerald-200 text-emerald-900';
+      } else if (mood === 'wrong') {
+        bubble.className += 'bg-rose-50 border-rose-200 text-rose-900';
+      } else if (mood === 'listening') {
+        bubble.className += 'bg-amber-50 border-amber-300 text-amber-900';
+      } else {
+        bubble.className += 'bg-sky-50 border-sky-200 text-sky-900';
+      }
+    }
+
+    function showSummary() {
+      stopListeningCleanup();
+      repeatRunToken++;
+      if ('speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+      }
+
+      const score = state.roundResults.filter(r => r === 'correct').length;
+      const passed = score >= 7; // 7題以上太棒了，7題以下再努力
+
+      document.getElementById('quizView').classList.add('hidden');
+      const summaryView = document.getElementById('summaryView');
+      summaryView.classList.remove('hidden');
+
+      const heroIcon = document.getElementById('summaryHeroIcon');
+      const title = document.getElementById('summaryTitle');
+      const subtitle = document.getElementById('summarySubtitle');
+      const scoreCard = document.getElementById('summaryScoreCard');
+      document.getElementById('finalScoreNum').textContent = score;
+
+      if (passed) {
+        heroIcon.textContent = '🏆';
+        heroIcon.className = 'text-7xl sm:text-8xl mb-3 select-none animate-trophy';
+        title.textContent = '太棒了！🎉';
+        title.className = 'text-4xl sm:text-5xl font-black mb-2 text-amber-500';
+        subtitle.textContent = `這 10 題你答對了 ${score} 題，表現超級優秀喔！`;
+        scoreCard.className = 'w-full max-w-sm rounded-2xl p-4 mb-5 border-2 border-amber-300 bg-amber-50 flex items-center justify-around';
+        playVictoryFanfare();
+
+        if (typeof confetti === 'function') {
+          const end = Date.now() + 1800;
+          (function frame() {
+            confetti({ particleCount: 5, angle: 60, spread: 60, origin: { x: 0, y: 0.65 } });
+            confetti({ particleCount: 5, angle: 120, spread: 60, origin: { x: 1, y: 0.65 } });
+            if (Date.now() < end) requestAnimationFrame(frame);
+          })();
+        }
+      } else {
+        heroIcon.textContent = '💪';
+        heroIcon.className = 'text-7xl sm:text-8xl mb-3 select-none animate-float';
+        title.textContent = '再努力！';
+        title.className = 'text-4xl sm:text-5xl font-black mb-2 text-sky-600';
+        subtitle.textContent = `這 10 題答對了 ${score} 題，多練習幾次一定會更進步！`;
+        scoreCard.className = 'w-full max-w-sm rounded-2xl p-4 mb-5 border-2 border-sky-200 bg-sky-50 flex items-center justify-around';
+        playEncourageMelody();
+      }
+
+      // Render round missed words
+      const missedWrap = document.getElementById('roundMissedWrap');
+      const missedList = document.getElementById('roundMissedList');
+      missedList.innerHTML = '';
+      if (state.roundMissed.length > 0) {
+        missedWrap.classList.remove('hidden');
+        state.roundMissed.forEach(w => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'word-font px-3 py-1.5 rounded-xl bg-white border-2 border-rose-200 hover:border-rose-400 text-rose-700 font-bold text-base flex items-center gap-1.5 shadow-xs transition';
+          btn.innerHTML = `<span>${w}</span><span class="text-xs">🔊</span>`;
+          btn.addEventListener('click', () => speakWordOnce(w, 0.8));
+          missedList.appendChild(btn);
+        });
+      } else {
+        missedWrap.classList.add('hidden');
+      }
+    }
+
+    // =========================================================================
+    // 10. MISTAKES BOOK MODAL
+    // =========================================================================
+    function openMistakesModal() {
+      renderMistakesModal();
+      document.getElementById('mistakesModal').classList.remove('hidden');
+    }
+
+    function closeMistakesModal() {
+      document.getElementById('mistakesModal').classList.add('hidden');
+    }
+
+    function renderMistakesModal() {
+      const container = document.getElementById('mistakesListContainer');
+      const entries = Object.entries(state.mistakes)
+        .filter(([, count]) => count > 0)
+        .sort((a, b) => b[1] - a[1]);
+
+      if (entries.length === 0) {
+        container.innerHTML = `
+          <div class="py-10 text-center text-slate-400">
+            <div class="text-4xl mb-2">🌟</div>
+            <p class="font-bold text-slate-600">目前沒有錯題喔！</p>
+            <p class="text-xs mt-1">當小朋友唸錯單字時，會自動儲存在這裡並增加出題頻率。</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '';
+      entries.forEach(([word, count]) => {
+        const multiplier = 1 + count * 3;
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-2 p-3 rounded-2xl bg-slate-50 border border-slate-200 hover:border-rose-200 transition';
+        row.innerHTML = `
+          <div class="flex items-center gap-3">
+            <button type="button" data-speak="${word}"
+              class="w-10 h-10 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-800 flex items-center justify-center text-lg transition" title="聽發音">
+              🔊
+            </button>
+            <div>
+              <div class="word-font text-xl font-bold text-slate-800 leading-none">${word}</div>
+              <div class="text-xs text-slate-500 mt-1">
+                唸錯 <span class="font-bold text-rose-600">${count}</span> 次 · 出題權重 <span class="font-bold text-amber-700">${multiplier}x</span>
+              </div>
+            </div>
+          </div>
+          <button type="button" data-remove="${word}"
+            class="px-2.5 py-1.5 rounded-xl bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-xs font-bold text-slate-500 hover:text-emerald-700 transition">
+            ✓ 已學會
+          </button>
+        `;
+        row.querySelector('[data-speak]').addEventListener('click', () => speakWordOnce(word, 0.8));
+        row.querySelector('[data-remove]').addEventListener('click', () => {
+          delete state.mistakes[word];
+          saveStorage();
+          updateHeaderAndDots();
+          renderMistakesModal();
+          showToast(`已將「${word}」移出錯題本！`);
+        });
+        container.appendChild(row);
+      });
+    }
+
+    function showMicNotice(msg) {
+      const el = document.getElementById('micNotice');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function hideMicNotice() {
+      document.getElementById('micNotice').classList.add('hidden');
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.add('hidden'), 2200);
+    }
+
+    // =========================================================================
+    // 11. EVENT LISTENERS & INITIALIZATION
+    // =========================================================================
+    document.getElementById('btnMic').addEventListener('click', startListening);
+
+    document.getElementById('btnHintSpeak').addEventListener('click', () => {
+      unlockSpeechEngine();
+      const word = state.roundWords[state.qIndex];
+      speakWordOnce(word, 0.82);
+    });
+
+    document.getElementById('btnManualCorrect').addEventListener('click', () => {
+      unlockSpeechEngine();
+      if (state.isListening) {
+        judgedThisAttempt = true;
+        stopListeningCleanup();
+      }
+      handleCorrect('家長判定唸對');
+    });
+
+    document.getElementById('btnManualWrong').addEventListener('click', () => {
+      unlockSpeechEngine();
+      if (state.isListening) {
+        judgedThisAttempt = true;
+        stopListeningCleanup();
+      }
+      handleWrong('家長判定唸錯');
+    });
+
+    document.getElementById('btnReplay3x').addEventListener('click', () => {
+      unlockSpeechEngine();
+      const word = state.roundWords[state.qIndex];
+      speakWordThreeTimes(word);
+    });
+
+    document.getElementById('btnNext').addEventListener('click', () => {
+      if (state.qIndex < 9) {
+        state.qIndex++;
+        renderCurrentQuestion();
+      } else {
+        showSummary();
+      }
+    });
+
+    document.getElementById('btnNextRound').addEventListener('click', startNewRound);
+
+    document.getElementById('btnSoundToggle').addEventListener('click', () => {
+      state.soundEnabled = !state.soundEnabled;
+      document.getElementById('soundIcon').textContent = state.soundEnabled ? '🔊' : '🔇';
+      showToast(state.soundEnabled ? '已開啟音效' : '已關閉音效');
+    });
+
+    document.getElementById('btnMistakes').addEventListener('click', openMistakesModal);
+    document.getElementById('btnReviewMistakesFromSummary').addEventListener('click', openMistakesModal);
+    document.getElementById('btnCloseModal').addEventListener('click', closeMistakesModal);
+    document.getElementById('mistakesModal').addEventListener('click', (e) => {
+      if (e.target.id === 'mistakesModal') closeMistakesModal();
+    });
+
+    document.getElementById('btnClearAllMistakes').addEventListener('click', () => {
+      state.mistakes = {};
+      saveStorage();
+      updateHeaderAndDots();
+      renderMistakesModal();
+      showToast('已清空所有錯題紀錄');
+    });
+
+    document.getElementById('btnPracticeWeakNow').addEventListener('click', () => {
+      const weakCount = Object.keys(state.mistakes).filter(w => state.mistakes[w] > 0).length;
+      closeMistakesModal();
+      if (weakCount === 0) {
+        showToast('目前還沒有錯題，先用全部單字練習喔！');
+        return;
+      }
+      selectMode('weak');
+    });
+
+    function selectMode(mode) {
+      if (mode === 'weak') {
+        const weakCount = Object.keys(state.mistakes).filter(w => state.mistakes[w] > 0).length;
+        if (weakCount === 0) {
+          showToast('目前還沒有唸錯的單字，先從全部單字開始吧！');
+          return;
+        }
+      }
+      state.mode = mode;
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        const isActive = btn.dataset.mode === mode;
+        if (isActive) {
+          btn.className = 'mode-btn px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold border-2 transition bg-sky-500 text-white border-sky-600 shadow-sm';
+        } else if (btn.dataset.mode === 'weak') {
+          btn.className = 'mode-btn px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold border-2 transition bg-white text-rose-600 border-rose-200 hover:border-rose-400';
+        } else {
+          btn.className = 'mode-btn px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold border-2 transition bg-white text-slate-600 border-slate-200 hover:border-sky-300';
+        }
+      });
+      startNewRound();
+    }
+
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => selectMode(btn.dataset.mode));
+    });
+
+    // Keyboard shortcut: Space to listen / Enter for next
+    document.addEventListener('keydown', (e) => {
+      if (!document.getElementById('mistakesModal').classList.contains('hidden')) return;
+      if (!document.getElementById('summaryView').classList.contains('hidden')) return;
+      if (e.code === 'Space' && !state.isAnswered) {
+        e.preventDefault();
+        startListening();
+      } else if (e.code === 'Enter' && state.isAnswered) {
+        e.preventDefault();
+        document.getElementById('btnNext').click();
+      }
+    });
+
+    // Boot
+    startNewRound();
+  </script>
+</body>
+</html>
