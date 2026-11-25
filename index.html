@@ -303,9 +303,9 @@
         <div id="micNotice" class="hidden w-full rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900 text-center font-medium">
         </div>
 
-        <!-- Parent / Manual Judge Helper (Always accessible in case mic is noisy or unavailable) -->
-        <div id="manualJudgeBar" class="w-full pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-          <span class="text-xs text-slate-400 font-bold">家長輔助判定：</span>
+        <!-- Parent / Manual Judge Helper (Always visible: before judging for manual input, after judging for overriding result) -->
+        <div id="manualJudgeBar" class="w-full pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+          <span id="manualJudgeLabel" class="text-xs text-slate-500 font-bold">家長輔助判定：</span>
           <div class="flex gap-2">
             <button id="btnManualCorrect" type="button"
               class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-xs font-bold transition">
@@ -629,44 +629,132 @@
     }
 
     // =========================================================================
-    // 4. WEB AUDIO SOUND EFFECTS (Zero external audio files)
+    // 4. SOUND EFFECTS (HTML5 WAV Chime + Web Audio API for Desktop & Mobile)
     // =========================================================================
     let audioCtx = null;
+    let correctWavUrl = null;
+    let correctAudioEl = null;
+
+    // Synthesize a bright, cheerful C-major bell fanfare into a playable WAV Blob URL
+    // so it plays loudly and reliably on mobile/iOS/Chrome even right after mic recognition.
+    function buildCorrectChimeWavUrl() {
+      if (correctWavUrl) return correctWavUrl;
+      const sampleRate = 22050;
+      const durationSec = 0.82;
+      const numSamples = Math.floor(sampleRate * durationSec);
+      const buffer = new ArrayBuffer(44 + numSamples * 2);
+      const view = new DataView(buffer);
+
+      const writeStr = (offset, str) => {
+        for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+      };
+      writeStr(0, 'RIFF');
+      view.setUint32(4, 36 + numSamples * 2, true);
+      writeStr(8, 'WAVE');
+      writeStr(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true); // PCM
+      view.setUint16(22, 1, true); // Mono
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeStr(36, 'data');
+      view.setUint32(40, numSamples * 2, true);
+
+      // Cheerful rising chime: C5 -> E5 -> G5 -> C6 (with sparkling overtones)
+      const notes = [
+        { freq: 523.25, start: 0.00, dur: 0.20, amp: 0.36 },
+        { freq: 659.25, start: 0.09, dur: 0.20, amp: 0.36 },
+        { freq: 783.99, start: 0.18, dur: 0.24, amp: 0.38 },
+        { freq: 1046.50, start: 0.27, dur: 0.50, amp: 0.45 },
+        { freq: 1318.51, start: 0.29, dur: 0.45, amp: 0.18 } // bright harmony
+      ];
+
+      for (let i = 0; i < numSamples; i++) {
+        const t = i / sampleRate;
+        let sample = 0;
+        for (const n of notes) {
+          if (t >= n.start && t <= n.start + n.dur) {
+            const lt = t - n.start;
+            const attack = Math.min(1, lt / 0.012);
+            const decay = Math.exp(-lt * 6.5);
+            const env = attack * decay * n.amp;
+            // Warm bell tone (fundamental + 2nd harmonic)
+            sample += env * (Math.sin(2 * Math.PI * n.freq * lt) + 0.3 * Math.sin(4 * Math.PI * n.freq * lt));
+          }
+        }
+        const clamped = Math.max(-0.98, Math.min(0.98, sample));
+        view.setInt16(44 + i * 2, Math.floor(clamped * 32767), true);
+      }
+
+      const blob = new Blob([buffer], { type: 'audio/wav' });
+      correctWavUrl = URL.createObjectURL(blob);
+      return correctWavUrl;
+    }
+
     function getAudioCtx() {
       if (!audioCtx) {
         const AC = window.AudioContext || window.webkitAudioContext;
         if (AC) audioCtx = new AC();
       }
-      if (audioCtx && audioCtx.state === 'suspended') {
+      if (audioCtx && audioCtx.state !== 'running') {
         audioCtx.resume().catch(() => {});
       }
       return audioCtx;
     }
 
-    function playTone(freq, startOffset, duration, type = 'sine', gainVal = 0.22) {
+    function playTone(freq, startOffset, duration, type = 'sine', gainVal = 0.28) {
       if (!state.soundEnabled) return;
       const ctx = getAudioCtx();
       if (!ctx) return;
-      const now = ctx.currentTime + startOffset;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, now);
-      gain.gain.setValueAtTime(0.001, now);
-      gain.gain.exponentialRampToValueAtTime(gainVal, now + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + duration + 0.02);
+      const schedule = () => {
+        const now = ctx.currentTime + startOffset;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.exponentialRampToValueAtTime(gainVal, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + duration + 0.03);
+      };
+      if (ctx.state !== 'running') {
+        ctx.resume().then(schedule).catch(() => {});
+      } else {
+        schedule();
+      }
     }
 
     function playCorrectSound() {
-      // Cheerful rising sparkle chime (C5 -> E5 -> G5 -> C6)
-      playTone(523.25, 0.00, 0.16, 'triangle', 0.25);
-      playTone(659.25, 0.09, 0.16, 'triangle', 0.25);
-      playTone(783.99, 0.18, 0.18, 'triangle', 0.25);
-      playTone(1046.50, 0.27, 0.38, 'sine', 0.28);
+      if (!state.soundEnabled) return;
+      // Primary: pre-synthesized bright WAV bell chime via <audio> (reliable after mic use on mobile)
+      try {
+        const url = buildCorrectChimeWavUrl();
+        if (!correctAudioEl) {
+          correctAudioEl = new Audio(url);
+        }
+        correctAudioEl.currentTime = 0;
+        correctAudioEl.volume = 1.0;
+        const p = correctAudioEl.play();
+        if (p && typeof p.catch === 'function') {
+          p.catch(() => {
+            // Fallback to Web Audio API if <audio> play is blocked
+            playTone(523.25, 0.00, 0.18, 'triangle', 0.34);
+            playTone(659.25, 0.09, 0.18, 'triangle', 0.34);
+            playTone(783.99, 0.18, 0.20, 'triangle', 0.36);
+            playTone(1046.50, 0.27, 0.45, 'sine', 0.40);
+          });
+        }
+      } catch (e) {
+        playTone(523.25, 0.00, 0.18, 'triangle', 0.34);
+        playTone(659.25, 0.09, 0.18, 'triangle', 0.34);
+        playTone(783.99, 0.18, 0.20, 'triangle', 0.36);
+        playTone(1046.50, 0.27, 0.45, 'sine', 0.40);
+      }
     }
 
     function playWrongSound() {
@@ -725,6 +813,12 @@
       if (!fallbackAudioEl) {
         fallbackAudioEl = new Audio();
         fallbackAudioEl.preload = 'auto';
+      }
+      if (!correctAudioEl) {
+        try {
+          correctAudioEl = new Audio(buildCorrectChimeWavUrl());
+          correctAudioEl.preload = 'auto';
+        } catch (e) {}
       }
       if (!speechUnlocked && 'speechSynthesis' in window) {
         try {
@@ -1105,13 +1199,39 @@
     }
 
     // =========================================================================
-    // 8. ANSWER HANDLERS (Correct / Wrong)
+    // 8. ANSWER HANDLERS (Correct / Wrong + Parent Post-Judge Override)
     // =========================================================================
-    function handleCorrect(heardText = '') {
-      if (state.isAnswered) return;
+    function stopAllSpeech() {
+      repeatRunToken++;
+      if ('speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+      }
+      if (fallbackAudioEl) {
+        try { fallbackAudioEl.pause(); } catch (e) {}
+      }
+    }
+
+    function handleCorrect(heardText = '', isOverride = false) {
+      const prevResult = state.roundResults[state.qIndex];
+      if (state.isAnswered && (!isOverride || prevResult === 'correct')) return;
+
+      const word = state.roundWords[state.qIndex];
+      stopAllSpeech();
+
+      // If overriding from 'wrong' -> 'correct', undo the mistake record
+      if (isOverride && prevResult === 'wrong') {
+        if (state.mistakes[word] && state.mistakes[word] > 0) {
+          state.mistakes[word]--;
+          if (state.mistakes[word] <= 0) delete state.mistakes[word];
+        }
+        state.roundMissed = state.roundMissed.filter(w => w !== word);
+      }
+
+      if (!state.isAnswered) {
+        state.totalPracticed++;
+      }
       state.isAnswered = true;
       state.roundResults[state.qIndex] = 'correct';
-      state.totalPracticed++;
       saveStorage();
 
       playCorrectSound();
@@ -1126,9 +1246,10 @@
         });
       }
 
+      document.getElementById('repeatBox').classList.add('hidden');
+
       const wordCard = document.getElementById('wordCard');
-      wordCard.classList.remove('border-amber-200', 'from-amber-50', 'to-orange-50');
-      wordCard.classList.add('border-emerald-400', 'from-emerald-50', 'to-teal-50', 'animate-happy');
+      wordCard.className = 'w-full max-w-md my-3 py-8 sm:py-10 px-6 rounded-3xl bg-gradient-to-b from-emerald-50 to-teal-50 border-4 border-emerald-400 flex flex-col items-center justify-center relative transition-all duration-300 animate-happy';
 
       const praises = ['太厲害了！唸得好標準！🌟', '答對了！你超棒的！🎉', '好清楚喔！給你一個大讚！👍', '答對囉！繼續保持！✨'];
       const msg = praises[Math.floor(Math.random() * praises.length)];
@@ -1136,16 +1257,25 @@
 
       const fb = document.getElementById('feedbackBanner');
       fb.className = 'w-full max-w-md rounded-2xl px-4 py-2.5 mb-3 text-center font-black text-sm sm:text-base bg-emerald-100 text-emerald-800 border-2 border-emerald-300 animate-pop';
-      fb.textContent = heardText ? `✅ 答對了！（辨識結果：${heardText}）` : '✅ 答對了！';
+      if (isOverride) {
+        fb.textContent = '✅ 家長已改判為答對！（已取消錯題紀錄）';
+      } else {
+        fb.textContent = heardText ? `✅ 答對了！（辨識結果：${heardText}）` : '✅ 答對了！';
+      }
 
       showPostAnswerControls(false);
       updateHeaderAndDots();
     }
 
-    function handleWrong(heardText = '') {
-      if (state.isAnswered) return;
-      state.isAnswered = true;
+    function handleWrong(heardText = '', isOverride = false) {
+      const prevResult = state.roundResults[state.qIndex];
+      if (state.isAnswered && (!isOverride || prevResult === 'wrong')) return;
+
       const word = state.roundWords[state.qIndex];
+      if (!state.isAnswered) {
+        state.totalPracticed++;
+      }
+      state.isAnswered = true;
       state.roundResults[state.qIndex] = 'wrong';
       if (!state.roundMissed.includes(word)) {
         state.roundMissed.push(word);
@@ -1153,21 +1283,23 @@
 
       // Save wrong word & increase frequency
       state.mistakes[word] = (state.mistakes[word] || 0) + 1;
-      state.totalPracticed++;
       saveStorage();
 
       playWrongSound();
 
       const wordCard = document.getElementById('wordCard');
-      wordCard.classList.remove('border-amber-200', 'from-amber-50', 'to-orange-50');
-      wordCard.classList.add('border-rose-300', 'from-rose-50', 'to-amber-50');
+      wordCard.className = 'w-full max-w-md my-3 py-8 sm:py-10 px-6 rounded-3xl bg-gradient-to-b from-rose-50 to-amber-50 border-4 border-rose-300 flex flex-col items-center justify-center relative transition-all duration-300';
 
       setStatusBubble('沒關係！聽老師唸三次，跟著唸喔！💛', 'wrong');
 
       const fb = document.getElementById('feedbackBanner');
       fb.className = 'w-full max-w-md rounded-2xl px-4 py-2.5 mb-3 text-center font-bold text-xs sm:text-sm bg-rose-100 text-rose-800 border-2 border-rose-200 animate-pop';
-      const heardPart = heardText ? `（聽到：${heardText}）` : '（沒聽清楚或唸錯囉）';
-      fb.textContent = `💪 一起練習「${word}」${heardPart} · 已存入錯題本加強！`;
+      if (isOverride) {
+        fb.textContent = `💪 家長已改判為答錯，一起跟讀「${word}」· 已存入錯題本加強！`;
+      } else {
+        const heardPart = heardText ? `（聽到：${heardText}）` : '（沒聽清楚或唸錯囉）';
+        fb.textContent = `💪 一起練習「${word}」${heardPart} · 已存入錯題本加強！`;
+      }
 
       showPostAnswerControls(true);
       updateHeaderAndDots();
@@ -1176,9 +1308,43 @@
       speakWordThreeTimes(word);
     }
 
+    function updateManualJudgeBar(mode) {
+      const label = document.getElementById('manualJudgeLabel');
+      const btnC = document.getElementById('btnManualCorrect');
+      const btnW = document.getElementById('btnManualWrong');
+
+      if (mode === 'idle') {
+        label.textContent = '家長輔助判定：';
+        btnC.disabled = false;
+        btnW.disabled = false;
+        btnC.textContent = '✅ 唸對了';
+        btnW.textContent = '❌ 唸錯 (跟讀3次)';
+        btnC.className = 'px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-xs font-bold transition cursor-pointer';
+        btnW.className = 'px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold transition cursor-pointer';
+      } else if (mode === 'correct') {
+        label.textContent = '家長修改結果：';
+        btnC.disabled = true;
+        btnW.disabled = false;
+        btnC.textContent = '✅ 目前：答對';
+        btnW.textContent = '🔄 改判為答錯';
+        btnC.className = 'px-3 py-1.5 rounded-xl bg-emerald-500 border border-emerald-600 text-white text-xs font-bold opacity-90 cursor-default';
+        btnW.className = 'px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border-2 border-rose-300 text-rose-700 text-xs font-bold transition cursor-pointer';
+      } else if (mode === 'wrong') {
+        label.textContent = '家長修改結果：';
+        btnC.disabled = false;
+        btnW.disabled = true;
+        btnC.textContent = '🔄 改判為答對';
+        btnW.textContent = '❌ 目前：答錯';
+        btnC.className = 'px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-300 text-emerald-700 text-xs font-bold transition cursor-pointer';
+        btnW.className = 'px-3 py-1.5 rounded-xl bg-rose-500 border border-rose-600 text-white text-xs font-bold opacity-90 cursor-default';
+      }
+    }
+
     function showPostAnswerControls(isWrong) {
       document.getElementById('btnMic').classList.add('hidden');
-      document.getElementById('manualJudgeBar').classList.add('hidden');
+      document.getElementById('manualJudgeBar').classList.remove('hidden');
+      updateManualJudgeBar(isWrong ? 'wrong' : 'correct');
+
       const post = document.getElementById('postAnswerControls');
       post.classList.remove('hidden');
 
@@ -1240,6 +1406,7 @@
       document.getElementById('postAnswerControls').classList.add('hidden');
       document.getElementById('btnMic').classList.remove('hidden');
       document.getElementById('manualJudgeBar').classList.remove('hidden');
+      updateManualJudgeBar('idle');
 
       setStatusBubble('準備好了嗎？按下麥克風唸出這個單字！', 'idle');
       updateHeaderAndDots();
@@ -1455,7 +1622,7 @@
         judgedThisAttempt = true;
         stopListeningCleanup();
       }
-      handleCorrect('家長判定唸對');
+      handleCorrect('家長判定唸對', state.isAnswered);
     });
 
     document.getElementById('btnManualWrong').addEventListener('click', () => {
@@ -1464,7 +1631,7 @@
         judgedThisAttempt = true;
         stopListeningCleanup();
       }
-      handleWrong('家長判定唸錯');
+      handleWrong('家長判定唸錯', state.isAnswered);
     });
 
     document.getElementById('btnReplay3x').addEventListener('click', () => {
